@@ -10,7 +10,7 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 -spec init([])
-	-> {ok, {{supervisor:strategy(), 1, 5}, [supervisor:child_spec()]}}.
+          -> {ok, {{supervisor:strategy(), 1, 5}, [supervisor:child_spec()]}}.
 init([]) ->
     Procs = [{eredis_cluster_pool,
                 {eredis_cluster_pool, start_link, []},

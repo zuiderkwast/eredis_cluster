@@ -107,16 +107,16 @@ qmn2([{Pool, PoolCommands} | T1], [{Pool, Mapping} | T2], Acc, Version) ->
     case handle_transaction_result(Result, Version, check_pipeline_result) of
         retry -> retry;
         Res ->
-            MappedRes = lists:zip(Mapping,Res),
+            MappedRes = lists:zip(Mapping, Res),
             qmn2(T1, T2, MappedRes ++ Acc, Version)
     end;
 qmn2([], [], Acc, _) ->
     SortedAcc =
         lists:sort(
-            fun({Index1, _},{Index2, _}) ->
+            fun({Index1, _}, {Index2, _}) ->
                 Index1 < Index2
             end, Acc),
-    [Res || {_,Res} <- SortedAcc].
+    [Res || {_, Res} <- SortedAcc].
 
 split_by_pools(Commands) ->
     State = eredis_cluster_monitor:get_state(),
@@ -138,7 +138,7 @@ split_by_pools([Command | T], Index, CmdAcc, MapAcc, State) ->
                 MapAcc2  = lists:keydelete(Pool, 1, MapAcc),
                 {[{Pool, CmdList2} | CmdAcc2], [{Pool, MapList2} | MapAcc2]}
         end,
-    split_by_pools(T, Index+1, NewAcc1, NewAcc2, State);
+    split_by_pools(T, Index + 1, NewAcc1, NewAcc2, State);
 split_by_pools([], _Index, CmdAcc, MapAcc, State) ->
     CmdAcc2 = [{Pool, lists:reverse(Commands)} || {Pool, Commands} <- CmdAcc],
     MapAcc2 = [{Pool, lists:reverse(Mapping)} || {Pool, Mapping} <- MapAcc],
@@ -286,7 +286,7 @@ optimistic_locking_transaction(WatchedKey, GetCommand, UpdateFunction) ->
     Slot = get_key_slot(WatchedKey),
     Transaction = fun(Worker) ->
         %% Watch given key
-        qw(Worker,["WATCH", WatchedKey]),
+        qw(Worker, ["WATCH", WatchedKey]),
         %% Get necessary information for the modifier function
         GetResult = qw(Worker, GetCommand),
         %% Execute the pipelined command as a redis transaction
@@ -359,7 +359,7 @@ qw(Worker, Command) ->
 -spec flushdb() -> ok | {error, Reason::bitstring()}.
 flushdb() ->
     Result = qa(["FLUSHDB"]),
-    case proplists:lookup(error,Result) of
+    case proplists:lookup(error, Result) of
         none ->
             ok;
         Error ->
@@ -374,11 +374,11 @@ flushdb() ->
 get_key_slot(Key) when is_bitstring(Key) ->
     get_key_slot(bitstring_to_list(Key));
 get_key_slot(Key) ->
-    KeyToBeHased = case string:chr(Key,${) of
+    KeyToBeHased = case string:chr(Key, ${) of
         0 ->
             Key;
         Start ->
-            case string:chr(string:substr(Key,Start+1),$}) of
+            case string:chr(string:substr(Key, Start + 1), $}) of
                 0 ->
                     Key;
                 Length ->
@@ -386,7 +386,7 @@ get_key_slot(Key) ->
                         Length =:= 1 ->
                             Key;
                         true ->
-                            string:substr(Key,Start+1,Length-1)
+                            string:substr(Key, Start + 1, Length-1)
                     end
             end
     end,
@@ -419,11 +419,11 @@ get_key_from_command([[X|Y]|Z]) when is_list(X) ->
         _ ->
             get_key_from_command([X|Y])
     end;
-get_key_from_command([Term1,Term2|Rest]) when is_bitstring(Term1) ->
-    get_key_from_command([bitstring_to_list(Term1),Term2|Rest]);
-get_key_from_command([Term1,Term2|Rest]) when is_bitstring(Term2) ->
-    get_key_from_command([Term1,bitstring_to_list(Term2)|Rest]);
-get_key_from_command([Term1,Term2|Rest]) ->
+get_key_from_command([Term1, Term2|Rest]) when is_bitstring(Term1) ->
+    get_key_from_command([bitstring_to_list(Term1), Term2|Rest]);
+get_key_from_command([Term1, Term2|Rest]) when is_bitstring(Term2) ->
+    get_key_from_command([Term1, bitstring_to_list(Term2)|Rest]);
+get_key_from_command([Term1, Term2|Rest]) ->
     case string:to_lower(Term1) of
         "info" ->
             undefined;
@@ -449,9 +449,9 @@ get_key_from_command(_) ->
 %% @end
 %% =============================================================================
 -spec get_key_from_rest([anystring()]) -> string() | undefined.
-get_key_from_rest([_,KeyName|_]) when is_bitstring(KeyName) ->
+get_key_from_rest([_, KeyName|_]) when is_bitstring(KeyName) ->
     bitstring_to_list(KeyName);
-get_key_from_rest([_,KeyName|_]) when is_list(KeyName) ->
+get_key_from_rest([_, KeyName|_]) when is_list(KeyName) ->
     KeyName;
 get_key_from_rest(_) ->
     undefined.

@@ -26,11 +26,11 @@ init(Args) ->
     Password = proplists:get_value(password, Args, ""),
 
     process_flag(trap_exit, true),
-    Result = eredis:start_link(Hostname,Port, DataBase, Password),
+    Result = eredis:start_link(Hostname, Port, DataBase, Password),
     process_flag(trap_exit, false),
 
     Conn = case Result of
-        {ok,Connection} ->
+        {ok, Connection} ->
             Connection;
         _ ->
             undefined

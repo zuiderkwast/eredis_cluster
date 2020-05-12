@@ -15,7 +15,7 @@
 -spec create(Host::string(), Port::integer()) ->
     {ok, PoolName::atom()} | {error, PoolName::atom()}.
 create(Host, Port) ->
-	PoolName = get_name(Host, Port),
+    PoolName = get_name(Host, Port),
 
     case whereis(PoolName) of
         undefined ->
@@ -27,8 +27,8 @@ create(Host, Port) ->
                           {password, Password}
                          ],
 
-        	Size = application:get_env(eredis_cluster, pool_size, 10),
-        	MaxOverflow = application:get_env(eredis_cluster, pool_max_overflow, 0),
+            Size = application:get_env(eredis_cluster, pool_size, 10),
+            MaxOverflow = application:get_env(eredis_cluster, pool_max_overflow, 0),
 
             PoolArgs = [{name, {local, PoolName}},
                         {worker_module, eredis_cluster_pool_worker},
@@ -37,8 +37,8 @@ create(Host, Port) ->
 
             ChildSpec = poolboy:child_spec(PoolName, PoolArgs, WorkerArgs),
 
-            {Result, _} = supervisor:start_child(?MODULE,ChildSpec),
-        	{Result, PoolName};
+            {Result, _} = supervisor:start_child(?MODULE, ChildSpec),
+            {Result, PoolName};
         _ ->
             {ok, PoolName}
     end.
@@ -55,8 +55,8 @@ transaction(PoolName, Transaction) ->
 
 -spec stop(PoolName::atom()) -> ok.
 stop(PoolName) ->
-    supervisor:terminate_child(?MODULE,PoolName),
-    supervisor:delete_child(?MODULE,PoolName),
+    supervisor:terminate_child(?MODULE, PoolName),
+    supervisor:delete_child(?MODULE, PoolName),
     ok.
 
 -spec get_name(Host::string(), Port::integer()) -> PoolName::atom().
@@ -65,9 +65,9 @@ get_name(Host, Port) ->
 
 -spec start_link() -> {ok, pid()}.
 start_link() ->
-	supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 -spec init([])
-	-> {ok, {{supervisor:strategy(), 1, 5}, [supervisor:child_spec()]}}.
+          -> {ok, {{supervisor:strategy(), 1, 5}, [supervisor:child_spec()]}}.
 init([]) ->
-	{ok, {{one_for_one, 1, 5}, []}}.
+    {ok, {{one_for_one, 1, 5}, []}}.
