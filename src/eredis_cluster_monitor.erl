@@ -20,10 +20,10 @@
 %% Type definition.
 -include("eredis_cluster.hrl").
 -record(state, {
-    init_nodes :: [#node{}],
-    slots :: tuple(), %% whose elements are integer indexes into slots_maps
-    slots_maps :: tuple(), %% whose elements are #slots_map{}
-    version :: integer()
+    init_nodes :: 'undefined' | [#node{}],
+    slots      :: 'undefined' | tuple(), %% whose elements are integer indexes into slots_maps
+    slots_maps :: 'undefined' | tuple(), %% whose elements are #slots_map{}
+    version    :: 'undefined' | integer()
 }).
 
 %% API.
@@ -51,7 +51,7 @@ get_state() ->
 get_state_version(State) ->
     State#state.version.
 
--spec get_all_pools() -> [pid()].
+-spec get_all_pools() -> [atom()].
 get_all_pools() ->
     State = get_state(),
     SlotsMapList = tuple_to_list(State#state.slots_maps),
@@ -65,7 +65,7 @@ get_all_pools() ->
 %% =============================================================================
 -spec get_pool_by_slot(Slot::integer(), State::#state{}) ->
     {PoolName::atom() | undefined, Version::integer()}.
-get_pool_by_slot(Slot, State) -> 
+get_pool_by_slot(Slot, State) ->
     Index = element(Slot+1,State#state.slots),
     Cluster = element(Index,State#state.slots_maps),
     if
@@ -194,7 +194,7 @@ create_slots_cache(SlotsMaps) ->
   SortedSlotsCache = lists:sort(SlotsCacheF),
   [ Index || {_,Index} <- SortedSlotsCache].
 
--spec connect_all_slots([#slots_map{}]) -> [integer()].
+-spec connect_all_slots([#slots_map{}]) -> [#slots_map{}].
 connect_all_slots(SlotsMapList) ->
     [SlotsMap#slots_map{node=connect_node(SlotsMap#slots_map.node)}
         || SlotsMap <- SlotsMapList].

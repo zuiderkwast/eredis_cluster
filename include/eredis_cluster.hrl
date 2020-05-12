@@ -5,7 +5,7 @@
 -type redis_command() :: redis_simple_command() | redis_pipeline_command().
 
 -type redis_error_result() :: Reason::bitstring() | no_connection
-    | invalid_cluster_command.
+    | invalid_cluster_command | tcp_closed.
 -type redis_success_result() :: Result::bitstring().
 -type redis_simple_result() :: {ok, redis_success_result()}
     | {error, redis_error_result()}.

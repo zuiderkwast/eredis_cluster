@@ -89,7 +89,7 @@ transaction(Transaction, Slot, ExpectedValue, Counter) ->
 -spec qmn(redis_pipeline_command()) -> redis_pipeline_result().
 qmn(Commands) -> qmn(Commands, 0).
 
-qmn(_, ?REDIS_CLUSTER_REQUEST_TTL) -> 
+qmn(_, ?REDIS_CLUSTER_REQUEST_TTL) ->
     {error, no_connection};
 qmn(Commands, Counter) ->
     %% Throttle retries
@@ -106,7 +106,7 @@ qmn2([{Pool, PoolCommands} | T1], [{Pool, Mapping} | T2], Acc, Version) ->
     Result = eredis_cluster_pool:transaction(Pool, Transaction),
     case handle_transaction_result(Result, Version, check_pipeline_result) of
         retry -> retry;
-        Res -> 
+        Res ->
             MappedRes = lists:zip(Mapping,Res),
             qmn2(T1, T2, MappedRes ++ Acc, Version)
     end;
@@ -184,13 +184,13 @@ query(Transaction, Slot, Counter) ->
     {Pool, Version} = eredis_cluster_monitor:get_pool_by_slot(Slot),
 
     Result = eredis_cluster_pool:transaction(Pool, Transaction),
-    case handle_transaction_result(Result, Version) of 
+    case handle_transaction_result(Result, Version) of
         retry -> query(Transaction, Slot, Counter + 1);
         Result -> Result
     end.
 
 handle_transaction_result(Result, Version) ->
-    case Result of 
+    case Result of
        % If we detect a node went down, we should probably refresh the slot
         % mapping.
         {error, no_connection} ->
@@ -213,6 +213,7 @@ handle_transaction_result(Result, Version) ->
         Payload ->
             Payload
     end.
+
 handle_transaction_result(Result, Version, check_pipeline_result) ->
     case handle_transaction_result(Result, Version) of
        retry -> retry;
@@ -298,7 +299,7 @@ optimistic_locking_transaction(WatchedKey, GetCommand, UpdateFunction) ->
         RedisResult = qw(Worker, [["MULTI"]] ++ UpdateCommand ++ [["EXEC"]]),
         {lists:last(RedisResult), Result}
     end,
-	case transaction(Transaction, Slot, {ok, undefined}, ?OL_TRANSACTION_TTL) of
+    case transaction(Transaction, Slot, {ok, undefined}, ?OL_TRANSACTION_TTL) of
         {{ok, undefined}, _} ->
             {error, resource_busy};
         {{ok, TransactionResult}, UpdateResult} ->
@@ -336,7 +337,7 @@ eval(Script, ScriptHash, Keys, Args) ->
 %% @doc Perform a given query on all node of a redis cluster
 %% @end
 %% =============================================================================
--spec qa(redis_command()) -> ok | {error, Reason::bitstring()}.
+-spec qa(redis_command()) -> [redis_transaction_result()].
 qa(Command) ->
     Pools = eredis_cluster_monitor:get_all_pools(),
     Transaction = fun(Worker) -> qw(Worker, Command) end,
