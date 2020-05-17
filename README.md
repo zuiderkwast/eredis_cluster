@@ -11,12 +11,15 @@ eredis_cluster is a wrapper for eredis to support cluster mode of redis 3.0.0+
 - Improve test suite to demonstrate the case where redis cluster is crashing,
 resharding, recovering...
 
-## Compilation && Test
+## Compilation and tests
 
-The directory contains a Makefile and rebar3
+The directory contains a Makefile that uses rebar3.
+Setup a Redis cluster and start the tests using following commands:
 
-	make
-	make test
+    make
+    make start
+    make test
+    make stop
 
 ## Configuration
 
@@ -104,7 +107,7 @@ eredis_cluster:update_hash_field("abc", "efg", Fun).
 
 %% Eval script, both script and hash are necessary to execute the command,
 %% the script hash should be precomputed at compile time otherwise, it will
-%% execute it at each request. Could be solved by using a macro though.  
+%% execute it at each request. Could be solved by using a macro though.
 Script = "return redis.call('set', KEYS[1], ARGV[1]);",
 ScriptHash = "4bf5e0d8612687699341ea7db19218e83f77b7cf",
 eredis_cluster:eval(Script, ScriptHash, ["abc"], ["123"]).

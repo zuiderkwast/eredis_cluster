@@ -1,105 +1,44 @@
-ERL=erl
-BEAMDIR=./deps/*/ebin ./ebin
+.PHONY: all compile clean test xref dialyzer elvis cover coverview edoc help start stop travis-run travis-install
+
 REBAR ?= rebar3
-PATH := ./redis-git/src:${PATH}
+REDIS_VERSION ?= 6.0.1
 
-# CLUSTER REDIS NODES
-define NODE1_CONF
-daemonize yes
-port 30001
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node1.pid
-logfile /tmp/redis_cluster_node1.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node1.conf
-endef
+# Configs
+COMMON_CONF=--cluster-enabled yes --cluster-node-timeout 5000 --appendonly yes
+NODE1_CONF=$(COMMON_CONF) --port 30001
+NODE2_CONF=$(COMMON_CONF) --port 30002
+NODE3_CONF=$(COMMON_CONF) --port 30003
+NODE4_CONF=$(COMMON_CONF) --port 30004
+NODE5_CONF=$(COMMON_CONF) --port 30005
+NODE6_CONF=$(COMMON_CONF) --port 30006
 
-define NODE2_CONF
-daemonize yes
-port 30002
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node2.pid
-logfile /tmp/redis_cluster_node2.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node2.conf
-endef
-
-define NODE3_CONF
-daemonize yes
-port 30003
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node3.pid
-logfile /tmp/redis_cluster_node3.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node3.conf
-endef
-
-define NODE4_CONF
-daemonize yes
-port 30004
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node4.pid
-logfile /tmp/redis_cluster_node4.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node4.conf
-endef
-
-define NODE5_CONF
-daemonize yes
-port 30005
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node5.pid
-logfile /tmp/redis_cluster_node5.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node5.conf
-endef
-
-define NODE6_CONF
-daemonize yes
-port 30006
-cluster-node-timeout 5000
-pidfile /tmp/redis_cluster_node6.pid
-logfile /tmp/redis_cluster_node6.log
-save ""
-appendonly no
-cluster-enabled yes
-cluster-config-file /tmp/redis_cluster_node6.conf
-endef
-
-export NODE1_CONF
-export NODE2_CONF
-export NODE3_CONF
-export NODE4_CONF
-export NODE5_CONF
-export NODE6_CONF
-
-all: clean compile xref
+all: compile xref elvis
 
 compile:
 	@$(REBAR) compile
 
-xref:
-	@$(REBAR) xref skip_deps=true
-
 clean:
-	@ $(REBAR) clean
+	@$(REBAR) clean
+	@rm -rf _build
 
-eunit:
-	@rm -rf .eunit
-	@mkdir -p .eunit
-	@ERL_FLAGS="-config test.config" $(REBAR) eunit
+test:
+	@ERL_FLAGS="-config test.config" $(REBAR) eunit -v --cover
 
-test: eunit
+xref:
+	@$(REBAR) xref
+
+dialyzer:
+	@$(REBAR) dialyzer
+
+elvis:
+	@elvis rock
+
+cover:
+	@$(REBAR) cover -v
+
+coverview: cover
+	xdg-open _build/test/cover/index.html
+
 
 edoc:
 	@$(REBAR) skip_deps=true doc
@@ -107,49 +46,35 @@ edoc:
 help:
 	@echo "Please use 'make <target>' where <target> is one of"
 	@echo "  start             starts a test redis cluster"
-	@echo "  cleanup           cleanup config files after redis cluster"
 	@echo "  stop              stops all redis servers"
 	@echo "  travis-run        starts the redis cluster and runs your tests"
 	@echo "  travis-install    install redis from 'unstable' branch"
 
-start: cleanup
-	echo "$$NODE1_CONF" | redis-server -
-	echo "$$NODE2_CONF" | redis-server -
-	echo "$$NODE3_CONF" | redis-server -
-	echo "$$NODE4_CONF" | redis-server -
-	echo "$$NODE5_CONF" | redis-server -
-	echo "$$NODE6_CONF" | redis-server -
-
-cleanup:
-	- rm -vf /tmp/redis_cluster_node*.conf 2>/dev/null
-	- rm -f /tmp/redis_cluster_node1.conf
-	- rm dump.rdb appendonly.aof - 2>/dev/null
+start:
+	docker run --name redis-1 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE1_CONF)
+	docker run --name redis-2 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE2_CONF)
+	docker run --name redis-3 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE3_CONF)
+	docker run --name redis-4 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE4_CONF)
+	docker run --name redis-5 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE5_CONF)
+	docker run --name redis-6 -d --net=host redis:$(REDIS_VERSION) redis-server $(NODE6_CONF)
+	sleep 5
+	echo 'yes' | docker run --name redis-cluster -i --rm --net=host redis:$(REDIS_VERSION) \
+	redis-cli --cluster create \
+	127.0.0.1:30001 127.0.0.1:30002 127.0.0.1:30003 127.0.0.1:30004 127.0.0.1:30005 127.0.0.1:30006 \
+	--cluster-replicas 1
 
 stop:
-	kill `cat /tmp/redis_cluster_node1.pid` || true
-	kill `cat /tmp/redis_cluster_node2.pid` || true
-	kill `cat /tmp/redis_cluster_node3.pid` || true
-	kill `cat /tmp/redis_cluster_node4.pid` || true
-	kill `cat /tmp/redis_cluster_node5.pid` || true
-	kill `cat /tmp/redis_cluster_node6.pid` || true
-	make cleanup
+	-docker rm -f redis-1
+	-docker rm -f redis-2
+	-docker rm -f redis-3
+	-docker rm -f redis-4
+	-docker rm -f redis-5
+	-docker rm -f redis-6
 
 travis-run:
-	# Start all cluster nodes
-	make start
-	sleep 5
-
-	# Join all nodes in the cluster
-	echo "yes" | ruby redis-git/src/redis-trib.rb create --replicas 1 127.0.0.1:30001 127.0.0.1:30002 127.0.0.1:30003 127.0.0.1:30004 127.0.0.1:30005 127.0.0.1:30006
+	make start # Start and join cluster
 	sleep 5
 
 	make compile && make test
 
-	# Kill all redis nodes and do cleanup
-	make stop
-
-travis-install:
-	[ ! -e redis-git ] && git clone -b 3.0.6 --single-branch https://github.com/antirez/redis.git redis-git || true
-	make -C redis-git -j4
-	gem install redis
-	sleep 3
+	make stop # Stop all cluster nodes
