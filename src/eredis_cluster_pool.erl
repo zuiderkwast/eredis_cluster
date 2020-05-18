@@ -19,11 +19,9 @@ create(Host, Port) ->
 
     case whereis(PoolName) of
         undefined ->
-            DataBase = application:get_env(eredis_cluster, database, 0),
             Password = application:get_env(eredis_cluster, password, ""),
             WorkerArgs = [{host, Host},
                           {port, Port},
-                          {database, DataBase},
                           {password, Password}
                          ],
 

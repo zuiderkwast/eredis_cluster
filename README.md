@@ -4,56 +4,64 @@
 
 ## Description
 
-eredis_cluster is a wrapper for eredis to support cluster mode of redis 3.0.0+
+eredis_cluster is a wrapper for eredis to support cluster mode of Redis 3.0.0+
 
 ## TODO
 
-- Improve test suite to demonstrate the case where redis cluster is crashing,
+- Improve test suite to demonstrate the case where Redis cluster is crashing,
 resharding, recovering...
 
 ## Compilation and tests
 
 The directory contains a Makefile that uses rebar3.
+
 Setup a Redis cluster and start the tests using following commands:
 
-    make
-    make start
-    make test
-    make stop
+```bash
+make
+make start  # Start a local Redis cluster
+make test   # Run tests towards the cluster
+make stop   # Teardown the Redis cluster
+```
 
 ## Configuration
 
-To configure the redis cluster, you can use an application variable (probably in
+To configure the Redis cluster, you can use an application variable (probably in
 your app.config):
 
-	{eredis_cluster,
-	    [
-	        {init_nodes,[
-	            {"127.0.0.1",30001},
-	            {"127.0.0.1",30002}
-	        ]},
-	        {pool_size, 5},
-	        {pool_max_overflow, 0}
-	    ]
-	}
-
-Or:
-
-	{eredis_cluster,
-	    [
-	        {init_nodes,[
-	            {"127.0.0.1",30001},
-	            {"127.0.0.1",30002}
-	        ]},
-	        {pool_size, 5},
-	        {pool_max_overflow, 0},
-		{database, 0},
- 		{password, "redis_pw"}
-	    ]
-	}
+    {eredis_cluster,
+        [
+            {init_nodes,[
+                {"127.0.0.1", 30001},
+                {"127.0.0.1", 30002}
+            ]},
+            {pool_size, 5},
+            {pool_max_overflow, 10}
+            {password, "redis_pw"}
+        ]
+    }
 
 You don't need to specify all nodes of your configuration as eredis_cluster will
 retrieve them through the command `CLUSTER SLOTS` at runtime.
+
+An alternative is to set the configurations programmatically:
+
+```erlang
+application:set_env(eredis_cluster, pool_size, 5),
+application:set_env(eredis_cluster, pool_max_overflow, 10),
+application:set_env(eredis_cluster, password, "redis_pw"),
+
+%% Set and connect to initial nodes
+eredis_cluster:connect([{"127.0.0.1", 30001},
+                        {"127.0.0.1", 30002}]).
+```
+
+Configuration description:
+
+* `init_nodes`: List of Redis instances to fetch cluster information from. Default: `[]`
+* `pool_size`: Number of connected clients to each Redis instance. Default: `10`
+* `pool_max_overflow`: Max number of extra clients that can be started when the pool is exhausted. Default: `0`
+* `password`: Password to use for a Redis cluster configured with `requirepass`. Default: `""` (i.e. AUTH not sent)
 
 ## Usage
 
