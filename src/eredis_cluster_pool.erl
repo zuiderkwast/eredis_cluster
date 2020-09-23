@@ -44,7 +44,10 @@ transaction(PoolName, Transaction) ->
     catch
         exit:{timeout, _GenServerCall} ->
             %% Poolboy checkout timeout, but the pool is consistent.
-            {error, pool_busy}
+            {error, pool_busy};
+        exit:_ ->
+            %% Pool doesn't exist? Refresh mapping solves this.
+            {error, no_connection}
     end.
 
 -spec stop(PoolName::atom()) -> ok.
